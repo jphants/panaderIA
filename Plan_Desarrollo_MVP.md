@@ -375,8 +375,8 @@ flowchart LR
 
   subgraph Ext [Servicios externos]
     PAY[Pasarelas: Izipay/Culqi/Niubiz]
-    CPE[CPE: SEE / PSE (Nubefact)]
-    SUNAT[SUNAT (validación CPE/GRE)]
+    CPE["CPE: SEE / PSE (Nubefact)"]
+    SUNAT["SUNAT (validación CPE/GRE)"]
   end
 
   Cliente-- Usa -->UI
@@ -399,7 +399,7 @@ flowchart TD
   end
 
   subgraph Backend [Kubernetes/ECS]
-    GW[Gateway API (FastAPI)\nSubdominio→tenant_id]
+    GW["Gateway API (FastAPI)\nSubdominio→tenant_id"]
     IDT[identity-tenants]
     CAT[catalog-recipes]
     INV[inventory-procurement]
@@ -409,7 +409,7 @@ flowchart TD
   DB[(PostgreSQL 16 / Supabase)]
   S3[(S3-compatible)]
   PAY[Izipay/Culqi/Niubiz]
-  NUBE[Nubefact (PSE) / SEE]
+  NUBE["Nubefact (PSE) / SEE"]
   SUNAT[SUNAT]
 
   NJS-->GW

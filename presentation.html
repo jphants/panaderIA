@@ -1,0 +1,1605 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan Desarrollo MVP — Diapositivas</title>
+  <style>
+    :root{ --bg:#071017; --panel:#081217; --muted:#9fb0bf; --accent:#58a6ff; --card:#fff6ea; --card-text:#06131a }
+    html,body { height:100%; margin:0; font-family: Inter, system-ui, Arial, sans-serif; background:var(--bg); color:#e6eef6; overflow:hidden; }
+    .deck { height:100vh; display:flex; align-items:center; justify-content:center; position:relative; }
+    .slide { width:100%; height:100%; display:none; align-items:center; justify-content:center; padding:0; box-sizing:border-box; }
+    .slide.active { display:flex; }
+    .content { background:transparent; width:100%; height:100%; overflow:hidden; display:flex; flex-direction:column; }
+    .visual { flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; padding:12px; }
+    .visual > .mermaid, .visual svg { width:100%; height:100%; }
+    .controls { position:absolute; left:12px; top:12px; display:flex; gap:8px; z-index:100 }
+    .nav { position:absolute; right:12px; top:12px; display:flex; gap:8px; z-index:100 }
+    button { background:rgba(255,255,255,0.04); color:var(--muted); border:1px solid rgba(255,255,255,0.06); padding:8px 10px; border-radius:8px; cursor:pointer; }
+    button:hover{ color:var(--accent); border-color:rgba(88,166,255,0.25) }
+    h2 { margin:14px 18px; font-size:20px; color:#dff0ff }
+    .table-wrap { width:100%; height:calc(100% - 56px); padding:18px; box-sizing:border-box; display:flex; }
+    table { border-collapse:collapse; width:100%; color:var(--card-text); background:var(--card); border-radius:6px; overflow:hidden; }
+    table th, table td { border:1px solid #e3e6e8; padding:10px 12px; text-align:left; }
+    table th { background:#f3f0e6; color:var(--card-text); }
+    .help { position:absolute; left:12px; bottom:12px; color:var(--muted); font-size:13px; z-index:100 }
+    .error { color:#ff9b9b; font-weight:700; text-align:center; padding:12px; }
+    /* make mermaid diagrams readable: light nodes on dark background */
+    .mermaid svg .label, .mermaid svg text { fill: #021219 !important; }
+    .mermaid svg rect, .mermaid svg polygon, .mermaid svg ellipse { fill: #fff6ea !important; stroke:#2b3940 !important; }
+    .mermaid svg .edgeLabel { fill:#9fb0bf !important; }
+  </style>
+</head>
+<body>
+
+<div class="deck" role="application">
+
+  <div class="controls">
+    <button id="prevBtn">⟨ Prev</button>
+    <button id="nextBtn">Next ⟩</button>
+  </div>
+
+  <div class="nav">
+    <button id="zoomIn">+</button>
+    <button id="zoomOut">−</button>
+    <button id="fitBtn">Fit</button>
+    <button id="resetBtn">Reset</button>
+  </div>
+
+  <div id="slidesContainer">
+
+    <!-- Slide 0: Roles y permisos (tabla) -->
+    <section class="slide active" data-title="Roles y permisos">
+      <div class="content">
+        <h2>Roles y permisos (matriz base)</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Recurso/Acción</th>
+                <th>OWNER</th>
+                <th>MANAGER</th>
+                <th>CASHIER</th>
+                <th>BAKER</th>
+                <th>STOREKEEPER</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Tenants/Planes</td><td>✔</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>
+              <tr><td>Usuarios/Roles</td><td>✔</td><td>✔</td><td>–</td><td>–</td><td>–</td></tr>
+              <tr><td>Catálogo/Precios</td><td>✔</td><td>✔</td><td>(ver)</td><td>–</td><td>(ver)</td></tr>
+              <tr><td>Recetas</td><td>✔</td><td>✔</td><td>–</td><td>✔</td><td>–</td></tr>
+              <tr><td>Inventario (ajustes)</td><td>✔</td><td>✔</td><td>–</td><td>–</td><td>✔</td></tr>
+              <tr><td>Compras/Recepciones</td><td>✔</td><td>✔</td><td>–</td><td>–</td><td>✔</td></tr>
+              <tr><td>Producción</td><td>✔</td><td>✔</td><td>–</td><td>✔</td><td>✔</td></tr>
+              <tr><td>POS/Ventas</td><td>✔</td><td>✔</td><td>✔</td><td>–</td><td>–</td></tr>
+              <tr><td>CPE/GRE</td><td>✔</td><td>✔</td><td>(emitir CPE)</td><td>–</td><td>(emitir GRE)</td></tr>
+              <tr><td>Reportes</td><td>✔</td><td>✔</td><td>(ventas)</td><td>(producción)</td><td>(stock)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- The following slides contain only mermaid code blocks (clean, without stray text) -->
+
+    <section class="slide" data-title="ERD - Modelo de datos">
+      <div class="content">
+        <h2>ERD — Modelo de datos</h2>
+        <div class="visual">
+          <div class="mermaid"> 
+erDiagram
+    TENANT ||--o{ TENANT_DOMAIN : has
+    TENANT ||--o{ USER_MEMBERSHIP : includes
+    USER ||--o{ USER_MEMBERSHIP : joins
+
+    TENANT { uuid id PK text name text plan text status timestamptz created_at }
+    TENANT_DOMAIN { uuid id PK uuid tenant_id FK text domain bool is_primary }
+    USER { uuid id PK text email text name text status }
+    USER_MEMBERSHIP { uuid id PK uuid tenant_id FK uuid user_id FK text role }
+
+    CATEGORY ||--o{ PRODUCT : groups
+    TENANT ||--o{ CATEGORY : owns
+    TENANT ||--o{ PRODUCT : owns
+    PRODUCT ||--o{ RECIPE : has
+    RECIPE ||--o{ RECIPE_ITEM : composed_of
+
+    PRODUCT { uuid id PK uuid tenant_id FK text sku text name text type text unit text tax_code bool active bool is_batch_tracked int shelf_life_days }
+    RECIPE { uuid id PK uuid tenant_id FK uuid product_id FK numeric yield_qty text yield_unit numeric loss_pct }
+    RECIPE_ITEM { uuid id PK uuid tenant_id FK uuid recipe_id FK uuid ingredient_id FK numeric qty text unit numeric baker_pct }
+
+    WAREHOUSE { uuid id PK uuid tenant_id FK text name text address text branch_code }
+    STOCK_LEVEL { uuid id PK uuid tenant_id FK uuid product_id FK uuid warehouse_id FK numeric qty_on_hand numeric qty_reserved }
+    STOCK_LOT { uuid id PK uuid tenant_id FK uuid product_id FK text lot_code date exp_date timestamptz created_at }
+    STOCK_MOVEMENT { uuid id PK uuid tenant_id FK timestamptz ts uuid product_id FK uuid warehouse_id FK uuid lot_id numeric qty text uom text type text ref_type uuid ref_id text note }
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Arquitectura - Sistema">
+      <div class="content">
+        <h2>Arquitectura — Sistema (C4-ish)</h2>
+        <div class="visual">
+          <div class="mermaid">
+flowchart LR
+  actor(Cliente)
+  subgraph Browser [Navegador del cliente]
+    UI[Next.js App]
+  end
+  subgraph SaaS [SaaS Panaderías]
+    BFF[Gateway / BFF]
+    subgraph SVCs [Microservicios FastAPI]
+      IDT[identity-tenants]
+      CAT[catalog-recipes]
+      INV[inventory-procurement]
+      POS[sales-pos-fiscal]
+    end
+    DB[(PostgreSQL/Supabase)]
+    OBJ[(Storage S3)]
+  end
+  subgraph Ext [Servicios externos]
+    PAY[Pasarelas: Izipay/Culqi/Niubiz]
+    CPE["CPE: SEE / PSE (Nubefact)"]
+    SUNAT["SUNAT (validación CPE/GRE)"]
+  end
+  Cliente-- Usa -->UI
+  UI-- REST/JWT -->BFF
+  BFF-- REST -->IDT & CAT & INV & POS
+  BFF-- set app.tenant_id -->DB
+  SVCs-- R/W -->DB
+  SVCs-- Presigned URLs -->OBJ
+  POS-- Emite -->CPE-- Intercambia -->SUNAT
+  UI-- SDK -->PAY
+  PAY-- Webhook -->POS
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Arquitectura - Contenedores">
+      <div class="content">
+        <h2>Arquitectura — Contenedores</h2>
+        <div class="visual">
+          <div class="mermaid">
+flowchart TD
+  subgraph Frontend [Frontend - Vercel]
+    NJS[Next.js App Router\nNextAuth/Supabase Auth]
+  end
+  subgraph Backend [Kubernetes/ECS]
+    GW["Gateway API (FastAPI)\nSubdominio→tenant_id"]
+    IDT[identity-tenants]
+    CAT[catalog-recipes]
+    INV[inventory-procurement]
+    POS[sales-pos-fiscal]
+  end
+  DB[(PostgreSQL 16 / Supabase)]
+  S3[(S3-compatible)]
+  PAY[Izipay/Culqi/Niubiz]
+  NUBE["Nubefact (PSE) / SEE"]
+  SUNAT[SUNAT]
+  NJS-->GW
+  GW-->IDT
+  GW-->CAT
+  GW-->INV
+  GW-->POS
+  IDT & CAT & INV & POS --> DB
+  CAT & INV & POS --> S3
+  NJS-->PAY
+  PAY--webhook-->POS
+  POS<-->NUBE
+  NUBE<-->SUNAT
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Secuencia - Venta POS">
+      <div class="content">
+        <h2>Secuencia — Venta POS con pago Yape y CPE</h2>
+        <div class="visual">
+          <div class="mermaid">
+sequenceDiagram
+  participant U as Cajero (POS)
+  participant UI as Next.js POS
+  participant GW as Gateway API
+  participant POSsvc as sales-pos-fiscal
+  participant INV as inventory
+  participant PAY as Pasarela (Izipay/Culqi/Niubiz)
+  participant CPE as CPE (SEE/Nubefact)
+  U->>UI: Selecciona ítems / cobra
+  UI->>GW: POST /sales (JWT c/tenant_id)
+  GW->>POSsvc: Crea venta (PENDING) + reserva stock
+  POSsvc->>INV: POST /stock/reserve (items)
+  INV-->>POSsvc: OK (reservado)
+  UI->>PAY: SDK tokeniza/cobra Yape
+  PAY-->>POSsvc: Webhook: pago PAID (firma válida)
+  POSsvc->>CPE: POST /cpe (json)
+  CPE-->>POSsvc: PDF/XML/CDR + status
+  POSsvc->>INV: POST /stock/commit (rebaja real)
+  POSsvc-->>GW: Venta CONFIRMED + links CPE
+  GW-->>UI: Ticket + enlace CPE
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Secuencia - Orden de producción">
+      <div class="content">
+        <h2>Secuencia — Orden de producción</h2>
+        <div class="visual">
+          <div class="mermaid">
+sequenceDiagram
+  participant B as Maestro Panadero
+  participant UI as App Producción
+  participant GW as Gateway
+  participant CAT as catalog-recipes
+  participant INV as inventory
+  participant PR as production (en INV)
+  B->>UI: Define OP (producto terminado, cantidad)
+  UI->>GW: POST /production-orders
+  GW->>CAT: GET receta + insumos escalados
+  GW->>PR: Crear OP (PLANNED)
+  PR->>INV: POST /stock/consume (insumos por lote)
+  INV-->>PR: Movimientos CONSUME
+  PR->>INV: POST /stock/produce (terminados a lote)
+  INV-->>PR: Movimientos PRODUCTION_IN
+  PR-->>GW: OP FINISHED (rendimiento/merma real)
+  GW-->>UI: OP cerrada + stock actualizado
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Secuencia - Recepción de compra">
+      <div class="content">
+        <h2>Secuencia — Recepción de compra con lotes</h2>
+        <div class="visual">
+          <div class="mermaid">
+sequenceDiagram
+  participant S as Storekeeper
+  participant UI as App Compras
+  participant GW as Gateway
+  participant INV as inventory
+  S->>UI: Registrar GR (proveedor, productos)
+  UI->>GW: POST /goods-receipts
+  GW->>INV: Crear GR + ítems
+  INV->>INV: Crear lotes (exp_date) + stock_level
+  INV-->>GW: Kardex y saldos actualizados
+  GW-->>UI: GR ok + etiquetas de lote
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Estado - production_order">
+      <div class="content">
+        <h2>Estado — production_order</h2>
+        <div class="visual">
+          <div class="mermaid">
+stateDiagram-v2
+  [*] --> PLANNED
+  PLANNED --> IN_PROGRESS: start()
+  IN_PROGRESS --> PAUSED: pause()
+  PAUSED --> IN_PROGRESS: resume()
+  IN_PROGRESS --> FINISHED: complete(rendimiento, merma)
+  IN_PROGRESS --> CANCELLED: cancel(motivo)
+  PLANNED --> CANCELLED: cancel()
+  FINISHED --> [*]
+  CANCELLED --> [*]
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Estado - pos_register">
+      <div class="content">
+        <h2>Estado — pos_register (caja)</h2>
+        <div class="visual">
+          <div class="mermaid">
+stateDiagram-v2
+  [*] --> CLOSED
+  CLOSED --> OPEN: open(opening_cash, user)
+  OPEN --> OPEN: movements(cash_in/out)
+  OPEN --> CLOSED: close(closing_cash, arqueo)
+  CLOSED --> [*]
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="help">← → : navegar • +/- : zoom • F : fit • 0 : reset • Arrastrar para mover</div>
+
+</div>
+
+<!-- Load mermaid and then svg-pan-zoom; if svg-pan-zoom missing provide a small shim that disables zoom controls gracefully -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  // Load svg-pan-zoom dynamically then run init
+  function loadScript(url){
+    return new Promise((resolve,reject)=>{
+      const s=document.createElement('script'); s.src=url; s.async=true;
+      s.onload=()=>resolve(); s.onerror=(e)=>reject(e); document.head.appendChild(s);
+    });
+  }
+
+  // Setup mermaid
+  mermaid.initialize({ startOnLoad:false, securityLevel:'strict', theme:'base', logLevel:'error' });
+
+  (async ()=>{
+    try{
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/svg-pan-zoom/3.6.1/svg-pan-zoom.min.js');
+    }catch(e){
+      console.warn('svg-pan-zoom failed to load, zoom/pan disabled', e);
+      // create a shim so attempts to call svgPanZoom won't throw
+      window.svgPanZoom = function(){ return { zoomIn:()=>{}, zoomOut:()=>{}, reset:()=>{}, fit:()=>{}, center:()=>{}, destroy:()=>{}, resize:()=>{} }; };
+    }
+
+    // After svg-pan-zoom is ready, render mermaid diagrams programmatically
+    const blocks = Array.from(document.querySelectorAll('.mermaid'));
+    for(const el of blocks){
+      const code = el.textContent.trim();
+      el.textContent = '';
+      try{
+        const id = 'm-'+Math.random().toString(36).slice(2,9);
+        const result = await mermaid.render(id, code);
+        el.innerHTML = result.svg;
+        // apply accessible focus and role
+        const svg = el.querySelector('svg'); if(svg) svg.setAttribute('role','img');
+      }catch(err){
+        el.innerHTML = '<div class="error">Error al renderizar diagrama: '+ (err && err.message ? err.message : String(err)) +'</div>';
+        console.error('Mermaid render error', err, code);
+      }
+    }
+
+    // Now initialize pan/zoom instances per slide on demand
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    let current = slides.findIndex(s=>s.classList.contains('active')) || 0;
+    const panInstances = new Array(slides.length).fill(null);
+
+    function initPan(index){
+      const slide = slides[index];
+      if(!slide) return;
+      const svg = slide.querySelector('svg');
+      if(!svg) return;
+      // ensure no previous instance
+      if(panInstances[index] && panInstances[index].destroy) { try{ panInstances[index].destroy(); }catch(e){} }
+      try{
+        const inst = window.svgPanZoom(svg, { zoomEnabled:true, controlIconsEnabled:false, fit:true, center:true, minZoom:0.2, maxZoom:10, dblClickZoomEnabled:true });
+        inst.fit(); inst.center(); panInstances[index]=inst;
+      }catch(e){ console.warn('pan init failed', e); }
+    }
+
+    function show(i){ if(i<0) i=0; if(i>=slides.length) i=slides.length-1; slides[current].classList.remove('active'); current=i; slides[current].classList.add('active'); document.title = slides[current].dataset.title || 'Diapositiva'; setTimeout(()=>initPan(current),150); }
+
+    document.getElementById('prevBtn').addEventListener('click', ()=> show(current-1));
+    document.getElementById('nextBtn').addEventListener('click', ()=> show(current+1));
+    document.getElementById('zoomIn').addEventListener('click', ()=>{ const i=panInstances[current]; if(i) i.zoomIn(); });
+    document.getElementById('zoomOut').addEventListener('click', ()=>{ const i=panInstances[current]; if(i) i.zoomOut(); });
+    document.getElementById('fitBtn').addEventListener('click', ()=>{ const i=panInstances[current]; if(i) { i.fit(); i.center(); } });
+    document.getElementById('resetBtn').addEventListener('click', ()=>{ const i=panInstances[current]; if(i) { i.reset(); i.fit(); i.center(); } });
+
+    window.addEventListener('keydown',(e)=>{
+      if(e.key==='ArrowRight') show(current+1);
+      if(e.key==='ArrowLeft') show(current-1);
+      if(e.key==='+'||e.key==='='){ const i=panInstances[current]; if(i) i.zoomIn(); }
+      if(e.key==='-'||e.key==='_'){ const i=panInstances[current]; if(i) i.zoomOut(); }
+      if(e.key==='0'){ const i=panInstances[current]; if(i) { i.reset(); i.fit(); i.center(); } }
+      if(e.key==='f'||e.key==='F'){ const i=panInstances[current]; if(i) { i.fit(); i.center(); } }
+    });
+
+    // init first slide's pan
+    setTimeout(()=> initPan(current), 200);
+
+    // ensure diagrams refit on resize
+    window.addEventListener('resize', ()=>{ const i=panInstances[current]; if(i){ try{ i.resize(); i.fit(); i.center(); }catch(e){} } });
+
+  })();
+</script>
+
+</body>
+</html>
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan Desarrollo MVP — Diapositivas</title>
+  <style>
+    :root{ --bg:#071017; --panel:#071826; --muted:#9fb0bf; --accent:#58a6ff }
+    html,body { height:100%; margin:0; font-family: Inter, system-ui, Arial, sans-serif; background:var(--bg); color:#e6eef6; }
+    .deck { height:100vh; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+    .slide { width:100%; height:100%; display:none; align-items:center; justify-content:center; padding:0; box-sizing:border-box; }
+    .slide.active { display:flex; }
+    .content { background:transparent; width:100%; height:100%; overflow:hidden; display:flex; flex-direction:column; }
+    .visual { flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; padding:12px; }
+    .visual > .mermaid, .visual svg { width:100%; height:100%; }
+    .controls { position:absolute; left:12px; top:12px; display:flex; gap:8px; z-index:60 }
+    .nav { position:absolute; right:12px; top:12px; display:flex; gap:8px; z-index:60 }
+    button { background:transparent; color:var(--muted); border:1px solid rgba(255,255,255,0.04); padding:8px 10px; border-radius:8px; cursor:pointer; backdrop-filter: blur(4px); }
+    button:hover{ color:var(--accent); border-color:rgba(88,166,255,0.25) }
+    h2 { margin:14px 18px; font-size:20px; color:#dff0ff }
+    .table-wrap { width:100%; height:calc(100% - 56px); padding:18px; box-sizing:border-box; display:flex; }
+    table { border-collapse:collapse; width:100%; color:#071427; background:#eaf6ff; border-radius:6px; overflow:hidden; }
+    table th, table td { border:1px solid #cfe6f8; padding:10px 12px; text-align:left; }
+    table th { background:#c9e8ff; color:#072433; }
+    .help { position:absolute; left:12px; bottom:12px; color:var(--muted); font-size:13px; z-index:60 }
+    .error { color:#ff9b9b; font-weight:600; text-align:center; padding:12px; }
+    /* Make content fullscreen-friendly */
+    .fullscreen { position:fixed; inset:0; z-index:40 }
+  </style>
+</head>
+<body>
+
+<div class="deck">
+
+  <div class="controls">
+    <button id="prevBtn">⟨ Prev</button>
+    <button id="nextBtn">Next ⟩</button>
+  </div>
+
+  <div class="nav">
+    <button id="zoomIn">+</button>
+    <button id="zoomOut">−</button>
+    <button id="fitBtn">Fit</button>
+    <button id="resetBtn">Reset</button>
+  </div>
+
+  <div id="slidesContainer">
+
+    <!-- Slide 0: Roles y permisos (tabla) -->
+    <section class="slide active" data-title="Roles y permisos">
+      <div class="content fullscreen">
+        <h2>Roles y permisos (matriz base)</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Recurso/Acción</th>
+                <th>OWNER</th>
+                <th>MANAGER</th>
+                <th>CASHIER</th>
+                <th>BAKER</th>
+                <th>STOREKEEPER</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Tenants/Planes</td><td>✔</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>
+              <tr><td>Usuarios/Roles</td><td>✔</td><td>✔</td><td>–</td><td>–</td><td>–</td></tr>
+              <tr><td>Catálogo/Precios</td><td>✔</td><td>✔</td><td>(ver)</td><td>–</td><td>(ver)</td></tr>
+              <tr><td>Recetas</td><td>✔</td><td>✔</td><td>–</td><td>✔</td><td>–</td></tr>
+              <tr><td>Inventario (ajustes)</td><td>✔</td><td>✔</td><td>–</td><td>–</td><td>✔</td></tr>
+              <tr><td>Compras/Recepciones</td><td>✔</td><td>✔</td><td>–</td><td>–</td><td>✔</td></tr>
+              <tr><td>Producción</td><td>✔</td><td>✔</td><td>–</td><td>✔</td><td>✔</td></tr>
+              <tr><td>POS/Ventas</td><td>✔</td><td>✔</td><td>✔</td><td>–</td><td>–</td></tr>
+              <tr><td>CPE/GRE</td><td>✔</td><td>✔</td><td>(emitir CPE)</td><td>–</td><td>(emitir GRE)</td></tr>
+              <tr><td>Reportes</td><td>✔</td><td>✔</td><td>(ventas)</td><td>(producción)</td><td>(stock)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 1: ERD (Mermaid) -->
+    <section class="slide" data-title="ERD - Modelo de datos">
+      <div class="content fullscreen">
+        <h2>ERD — Modelo de datos</h2>
+        <div class="visual">
+          <div class="mermaid" data-diagram-id="m1">
+erDiagram
+    TENANT ||--o{ TENANT_DOMAIN : has
+    TENANT ||--o{ USER_MEMBERSHIP : includes
+    USER ||--o{ USER_MEMBERSHIP : joins
+
+    TENANT {
+      uuid id PK
+      text name
+      text plan
+      text status
+      timestamptz created_at
+    }
+    TENANT_DOMAIN {
+      uuid id PK
+      uuid tenant_id FK
+      text domain
+      bool is_primary
+    }
+    USER {
+      uuid id PK
+      text email
+      text name
+      text status
+    }
+    USER_MEMBERSHIP {
+      uuid id PK
+      uuid tenant_id FK
+      uuid user_id FK
+      text role
+    }
+
+    CATEGORY ||--o{ PRODUCT : groups
+    TENANT ||--o{ CATEGORY : owns
+    TENANT ||--o{ PRODUCT : owns
+    PRODUCT ||--o{ RECIPE : has
+    RECIPE ||--o{ RECIPE_ITEM : composed_of
+
+    CATEGORY {
+      uuid id PK
+      uuid tenant_id FK
+      text name
+    }
+    PRODUCT {
+      uuid id PK
+      uuid tenant_id FK
+      text sku
+      text name
+      text type
+      text unit
+      text tax_code
+      bool active
+      bool is_batch_tracked
+      int shelf_life_days
+    }
+    RECIPE {
+      uuid id PK
+      uuid tenant_id FK
+      uuid product_id FK
+      numeric yield_qty
+      text yield_unit
+      numeric loss_pct
+    }
+    RECIPE_ITEM {
+      uuid id PK
+      uuid tenant_id FK
+      uuid recipe_id FK
+      uuid ingredient_id FK
+      numeric qty
+      text unit
+      numeric baker_pct
+    }
+
+    TENANT ||--o{ WAREHOUSE : has
+    PRODUCT ||--o{ STOCK_LEVEL : tracked_in
+    PRODUCT ||--o{ STOCK_LOT : batches
+    WAREHOUSE ||--o{ STOCK_LEVEL : holds
+    WAREHOUSE ||--o{ STOCK_MOVEMENT : records
+    STOCK_LOT ||--o{ STOCK_MOVEMENT : referenced_by
+
+    WAREHOUSE {
+      uuid id PK
+      uuid tenant_id FK
+      text name
+      text address
+      text branch_code
+    }
+    STOCK_LEVEL {
+      uuid id PK
+      uuid tenant_id FK
+      uuid product_id FK
+      uuid warehouse_id FK
+      numeric qty_on_hand
+      numeric qty_reserved
+    }
+    STOCK_LOT {
+      uuid id PK
+      uuid tenant_id FK
+      uuid product_id FK
+      text lot_code
+      date exp_date
+      timestamptz created_at
+    }
+    STOCK_MOVEMENT {
+      uuid id PK
+      uuid tenant_id FK
+      timestamptz ts
+      uuid product_id FK
+      uuid warehouse_id FK
+      uuid lot_id
+      numeric qty
+      text uom
+      text type
+      text ref_type
+      uuid ref_id
+      text note
+    }
+
+    SUPPLIER ||--o{ PURCHASE_ORDER : placed
+    PURCHASE_ORDER ||--o{ PURCHASE_ITEM : has
+    PURCHASE_ORDER ||--o{ GOODS_RECEIPT : results_in
+    GOODS_RECEIPT ||--o{ GOODS_RECEIPT_ITEM : contains
+
+    SUPPLIER {
+      uuid id PK
+      uuid tenant_id FK
+      text ruc
+      text name
+      text contact
+      text email
+      text phone
+    }
+    PURCHASE_ORDER {
+      uuid id PK
+      uuid tenant_id FK
+      uuid supplier_id FK
+      text status
+      timestamptz eta
+      numeric total
+      text currency
+    }
+    PURCHASE_ITEM {
+      uuid id PK
+      uuid tenant_id FK
+      uuid purchase_id FK
+      uuid product_id FK
+      numeric qty
+      text unit
+      numeric unit_cost
+      numeric tax_rate
+    }
+    GOODS_RECEIPT {
+      uuid id PK
+      uuid tenant_id FK
+      uuid purchase_id FK
+      timestamptz received_at
+      text doc_ref
+    }
+    GOODS_RECEIPT_ITEM {
+      uuid id PK
+      uuid tenant_id FK
+      uuid receipt_id FK
+      uuid product_id FK
+      uuid lot_id FK
+      uuid warehouse_id FK
+      numeric qty
+      text unit
+      numeric unit_cost
+    }
+
+    POS_REGISTER ||--o{ SALE : processes
+    SALE ||--o{ SALE_ITEM : includes
+    SALE ||--o{ PAYMENT : gets
+    SALE ||--o{ CPE : issues
+    GRE ||--o{ STOCK_MOVEMENT : supports
+
+    POS_REGISTER {
+      uuid id PK
+      uuid tenant_id FK
+      text code
+      uuid warehouse_id FK
+      bool is_open
+      timestamptz opened_at
+      uuid opened_by
+      timestamptz closed_at
+      uuid closed_by
+      numeric opening_cash
+      numeric closing_cash
+    }
+    SALE {
+      uuid id PK
+      uuid tenant_id FK
+      timestamptz ts
+      uuid pos_register_id FK
+      uuid customer_id
+      text status
+      numeric subtotal
+      numeric tax
+      numeric total
+      text currency
+      text payment_status
+      uuid cpe_id
+    }
+    SALE_ITEM {
+      uuid id PK
+      uuid tenant_id FK
+      uuid sale_id FK
+      uuid product_id FK
+      numeric qty
+      text unit
+      numeric unit_price
+      numeric discount_pct
+      numeric tax_rate
+    }
+    PAYMENT {
+      uuid id PK
+      uuid tenant_id FK
+      uuid sale_id FK
+      text method
+      numeric amount
+      text external_txn_id
+      text status
+      jsonb payload_json
+    }
+    CPE {
+      uuid id PK
+      uuid tenant_id FK
+      %% FACTURA|BOLETA|NC|ND
+      text type
+      text series
+      text number
+      timestamptz issue_ts
+      text status
+      %% SEE|NUBEFACT|OTRO
+      text provider
+      text provider_ref
+      text pdf_url
+      text xml_url
+      text cdr_url
+      text sunat_ticket
+      jsonb response_json
+    }
+    GRE {
+      uuid id PK
+      uuid tenant_id FK
+      text series
+      text number
+      timestamptz issue_ts
+      text status
+      jsonb json_payload
+      text sunat_ticket
+    }
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 2: Arquitectura Sistema -->
+    <section class="slide" data-title="Arquitectura - Sistema">
+      <div class="content fullscreen">
+        <h2>Arquitectura — Sistema (C4-ish)</h2>
+        <div class="visual">
+          <div class="mermaid" data-diagram-id="m2">
+flowchart LR
+  actor(Cliente)
+  subgraph Browser [Navegador del cliente]
+    UI[Next.js App]
+  end
+
+  subgraph SaaS [SaaS Panaderías]
+    BFF[Gateway / BFF]
+    subgraph SVCs [Microservicios FastAPI]
+      IDT[identity-tenants]
+      CAT[catalog-recipes]
+      INV[inventory-procurement]
+      POS[sales-pos-fiscal]
+    end
+    DB[(PostgreSQL/Supabase)]
+    OBJ[(Storage S3)]
+  end
+
+  subgraph Ext [Servicios externos]
+    PAY[Pasarelas: Izipay/Culqi/Niubiz]
+    CPE["CPE: SEE / PSE (Nubefact)"]
+    SUNAT["SUNAT (validación CPE/GRE)"]
+  end
+
+  Cliente-- Usa -->UI
+  UI-- REST/JWT -->BFF
+  BFF-- REST -->IDT & CAT & INV & POS
+  BFF-- set app.tenant_id -->DB
+  SVCs-- R/W -->DB
+  SVCs-- Presigned URLs -->OBJ
+  POS-- Emite -->CPE-- Intercambia -->SUNAT
+  UI-- SDK -->PAY
+  PAY-- Webhook -->POS
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 3: Contenedores -->
+    <section class="slide" data-title="Arquitectura - Contenedores">
+      <div class="content fullscreen">
+        <h2>Arquitectura — Contenedores</h2>
+        <div class="visual">
+          <div class="mermaid" data-diagram-id="m3">
+flowchart TD
+  subgraph Frontend [Frontend - Vercel]
+    NJS[Next.js App Router\nNextAuth/Supabase Auth]
+  end
+
+  subgraph Backend [Kubernetes/ECS]
+    GW["Gateway API (FastAPI)\nSubdominio→tenant_id"]
+    IDT[identity-tenants]
+    CAT[catalog-recipes]
+    INV[inventory-procurement]
+    POS[sales-pos-fiscal]
+  end
+
+  DB[(PostgreSQL 16 / Supabase)]
+  S3[(S3-compatible)]
+  PAY[Izipay/Culqi/Niubiz]
+  NUBE["Nubefact (PSE) / SEE"]
+  SUNAT[SUNAT]
+
+  NJS-->GW
+  GW-->IDT
+  GW-->CAT
+  GW-->INV
+  GW-->POS
+  IDT & CAT & INV & POS --> DB
+  CAT & INV & POS --> S3
+  NJS-->PAY
+  PAY--webhook-->POS
+  POS<-->NUBE
+  NUBE<-->SUNAT
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 4: Secuencia POS -->
+    <section class="slide" data-title="Secuencia - Venta POS">
+      <div class="content fullscreen">
+        <h2>Secuencia — Venta POS con pago Yape y CPE</h2>
+        <div class="visual">
+          <div class="mermaid" data-diagram-id="m4">
+sequenceDiagram
+  participant U as Cajero (POS)
+  participant UI as Next.js POS
+  participant GW as Gateway API
+  participant POSsvc as sales-pos-fiscal
+  participant INV as inventory
+  participant PAY as Pasarela (Izipay/Culqi/Niubiz)
+  participant CPE as CPE (SEE/Nubefact)
+
+  U->>UI: Selecciona ítems / cobra
+  UI->>GW: POST /sales (JWT c/tenant_id)
+  GW->>POSsvc: Crea venta (PENDING) + reserva stock
+  POSsvc->>INV: POST /stock/reserve (items)
+  INV-->>POSsvc: OK (reservado)
+
+  UI->>PAY: SDK tokeniza/cobra Yape
+  PAY-->>POSsvc: Webhook: pago PAID (firma válida)
+
+  POSsvc->>CPE: POST /cpe (json)
+  CPE-->>POSsvc: PDF/XML/CDR + status
+  POSsvc->>INV: POST /stock/commit (rebaja real)
+  POSsvc-->>GW: Venta CONFIRMED + links CPE
+  GW-->>UI: Ticket + enlace CPE
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 5: Secuencia OP -->
+    <section class="slide" data-title="Secuencia - Orden de producción">
+      <div class="content fullscreen">
+        <h2>Secuencia — Orden de producción</h2>
+        <div class="visual">
+          <div class="mermaid" data-diagram-id="m5">
+sequenceDiagram
+  participant B as Maestro Panadero
+  participant UI as App Producción
+  participant GW as Gateway
+  participant CAT as catalog-recipes
+  participant INV as inventory
+  participant PR as production (en INV)
+
+  B->>UI: Define OP (producto terminado, cantidad)
+  UI->>GW: POST /production-orders
+  GW->>CAT: GET receta + insumos escalados
+  GW->>PR: Crear OP (PLANNED)
+  PR->>INV: POST /stock/consume (insumos por lote)
+  INV-->>PR: Movimientos CONSUME
+  PR->>INV: POST /stock/produce (terminados a lote)
+  INV-->>PR: Movimientos PRODUCTION_IN
+  PR-->>GW: OP FINISHED (rendimiento/merma real)
+  GW-->>UI: OP cerrada + stock actualizado
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 6: Secuencia Recepción GR -->
+    <section class="slide" data-title="Secuencia - Recepción de compra">
+      <div class="content fullscreen">
+        <h2>Secuencia — Recepción de compra con lotes</h2>
+        <div class="visual">
+          <div class="mermaid" data-diagram-id="m6">
+sequenceDiagram
+  participant S as Storekeeper
+  participant UI as App Compras
+  participant GW as Gateway
+  participant INV as inventory
+
+  S->>UI: Registrar GR (proveedor, productos)
+  UI->>GW: POST /goods-receipts
+  GW->>INV: Crear GR + ítems
+  INV->>INV: Crear lotes (exp_date) + stock_level
+  INV-->>GW: Kardex y saldos actualizados
+  GW-->>UI: GR ok + etiquetas de lote
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 7: Estado production_order -->
+    <section class="slide" data-title="Estado - production_order">
+      <div class="content fullscreen">
+        <h2>Estado — production_order</h2>
+        <div class="visual">
+          <div class="mermaid" data-diagram-id="m7">
+stateDiagram-v2
+  [*] --> PLANNED
+  PLANNED --> IN_PROGRESS: start()
+  IN_PROGRESS --> PAUSED: pause()
+  PAUSED --> IN_PROGRESS: resume()
+  IN_PROGRESS --> FINISHED: complete(rendimiento, merma)
+  IN_PROGRESS --> CANCELLED: cancel(motivo)
+  PLANNED --> CANCELLED: cancel()
+  FINISHED --> [*]
+  CANCELLED --> [*]
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 8: Estado pos_register -->
+    <section class="slide" data-title="Estado - pos_register">
+      <div class="content fullscreen">
+        <h2>Estado — pos_register (caja)</h2>
+        <div class="visual">
+          <div class="mermaid" data-diagram-id="m8">
+stateDiagram-v2
+  [*] --> CLOSED
+  CLOSED --> OPEN: open(opening_cash, user)
+  OPEN --> OPEN: movements(cash_in/out)
+  OPEN --> CLOSED: close(closing_cash, arqueo)
+  CLOSED --> [*]
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="help">← → : navegar • +/- : zoom • F : fit • 0 : reset • Arrastrar para mover</div>
+
+</div>
+
+<!-- Mermaid + svg-pan-zoom via CDN -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/svg-pan-zoom/3.6.1/svg-pan-zoom.min.js"></script>
+<script>
+  // Robust programmatic rendering of mermaid blocks and pan/zoom setup
+  mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'base', logLevel: 'error' });
+
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let current = 0;
+  const panInstances = new Array(slides.length).fill(null);
+
+  // Render all mermaid blocks into SVG elements safely
+  async function renderMermaids(){
+    const blocks = Array.from(document.querySelectorAll('.mermaid'));
+    for(const el of blocks){
+      const code = el.textContent.trim();
+      // Clear content to avoid double rendering
+      el.textContent = '';
+      try{
+        const { svg } = await mermaid.render('md-'+Math.random().toString(36).slice(2,9), code);
+        el.innerHTML = svg;
+      }catch(err){
+        el.innerHTML = '<div class="error">Error al renderizar diagrama: '+ (err && err.str || err.message || err) +'</div>';
+        console.error('Mermaid render error', err, code);
+      }
+    }
+  }
+
+  function initPanForSlide(index){
+    // destroy previous instance for this index if exists
+    if(panInstances[index] && panInstances[index].destroy){
+      try{ panInstances[index].destroy(); }catch(e){}
+      panInstances[index] = null;
+    }
+    const slide = slides[index];
+    if(!slide) return;
+    const svg = slide.querySelector('svg');
+    if(!svg) return;
+    try{
+      const instance = svgPanZoom(svg, {
+        zoomEnabled: true,
+        controlIconsEnabled: false,
+        fit: true,
+        center: true,
+        minZoom: 0.2,
+        maxZoom: 10,
+        zoomScaleSensitivity: 0.2,
+        dblClickZoomEnabled: true,
+      });
+      instance.fit(); instance.center();
+      panInstances[index] = instance;
+    }catch(e){ console.warn('pan init failed', e); }
+  }
+
+  function showSlide(i){
+    if(i<0) i = 0; if(i>=slides.length) i = slides.length-1;
+    slides[current].classList.remove('active');
+    current = i;
+    slides[current].classList.add('active');
+    document.title = slides[current].dataset.title || 'Diapositiva';
+    // init pan/zoom for current slide and fit
+    setTimeout(()=> initPanForSlide(current), 200);
+  }
+
+  document.getElementById('prevBtn').addEventListener('click', ()=> showSlide(current-1));
+  document.getElementById('nextBtn').addEventListener('click', ()=> showSlide(current+1));
+
+  // zoom controls
+  document.getElementById('zoomIn').addEventListener('click', ()=>{ const i=panInstances[current]; if(i) i.zoomIn(); });
+  document.getElementById('zoomOut').addEventListener('click', ()=>{ const i=panInstances[current]; if(i) i.zoomOut(); });
+  document.getElementById('resetBtn').addEventListener('click', ()=>{ const i=panInstances[current]; if(i) { i.reset(); i.center(); i.fit(); } });
+  document.getElementById('fitBtn').addEventListener('click', ()=>{ const i=panInstances[current]; if(i) { i.fit(); i.center(); } });
+
+  // keyboard
+  window.addEventListener('keydown', (e)=>{
+    if(e.key === 'ArrowRight') showSlide(current+1);
+    if(e.key === 'ArrowLeft') showSlide(current-1);
+    if(e.key === '+' || e.key === '=') { const i=panInstances[current]; if(i) i.zoomIn(); }
+    if(e.key === '-' || e.key === '_') { const i=panInstances[current]; if(i) i.zoomOut(); }
+    if(e.key === '0') { const i=panInstances[current]; if(i) { i.reset(); i.center(); i.fit(); } }
+    if(e.key === 'f' || e.key === 'F') { const i=panInstances[current]; if(i) { i.fit(); i.center(); } }
+  });
+
+  // Render then init first slide
+  renderMermaids().then(()=>{
+    // initialize pan for active slide
+    setTimeout(()=> initPanForSlide(current), 200);
+  });
+
+  // Ensure slides take full viewport on resize
+  window.addEventListener('resize', ()=>{
+    const i = panInstances[current];
+    if(i) { try{ i.resize(); i.fit(); i.center(); }catch(e){} }
+  });
+
+</script>
+</body>
+</html>
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan Desarrollo MVP — Diapositivas</title>
+  <style>
+    html,body { height:100%; margin:0; font-family: Inter, system-ui, Arial, sans-serif; background:#0b0f12; color:#e6eef6; }
+    .deck { height:100vh; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+    .slide { width:100%; height:100%; display:none; align-items:center; justify-content:center; padding:0; box-sizing:border-box; }
+    .slide.active { display:flex; }
+    .content { background: transparent; border-radius:6px; padding:0; width:100%; height:100%; overflow:hidden; display:flex; flex-direction:column; }
+    .visual { flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; padding:20px; }
+    .visual > .mermaid, .visual svg { width:100%; height:100%; }
+    .controls { position:absolute; left:12px; top:12px; display:flex; gap:8px; z-index:50 }
+    .nav { position:absolute; right:12px; top:12px; display:flex; gap:8px; z-index:50 }
+    button { background:linear-gradient(#111827,#0b1220); color:#e6eef6; border:1px solid rgba(255,255,255,0.06); padding:8px 10px; border-radius:6px; cursor:pointer; box-shadow:0 2px 6px rgba(2,6,23,0.6); }
+    button:active{ transform:translateY(1px); }
+    .meta { font-size:13px; color:#9ca3af; margin-top:8px; }
+    table { border-collapse:collapse; width:100%; color:#0b1220; background:#e6eef6; }
+    table th, table td { border:1px solid #cbd5e1; padding:10px 12px; text-align:left; }
+    table th { background:#d1e3f0; color:#021427; }
+    .help { position:absolute; left:12px; bottom:12px; color:#9ca3af; font-size:13px; z-index:50 }
+    .error { color:#ff6b6b; font-weight:600; text-align:center; padding:12px; }
+  </style>
+</head>
+<body>
+
+<div class="deck">
+
+  <div class="controls">
+    <button id="prevBtn">⟨ Prev</button>
+    <button id="nextBtn">Next ⟩</button>
+  </div>
+
+  <div class="nav">
+    <button id="zoomIn">+</button>
+    <button id="zoomOut">−</button>
+    <button id="fitBtn">Fit</button>
+    <button id="resetBtn">Reset</button>
+  </div>
+
+  <div id="slidesContainer">
+
+    <!-- Slide 0: Roles y permisos (tabla) -->
+    <section class="slide active" data-title="Roles y permisos">
+      <div class="content">
+        <h2 style="margin:0 0 8px 0">Roles y permisos (matriz base)</h2>
+        <div class="visual" style="overflow:auto; padding:8px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Recurso/Acción</th>
+                <th>OWNER</th>
+                <th>MANAGER</th>
+                <th>CASHIER</th>
+                <th>BAKER</th>
+                <th>STOREKEEPER</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Tenants/Planes</td><td>✔</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>
+              <tr><td>Usuarios/Roles</td><td>✔</td><td>✔</td><td>–</td><td>–</td><td>–</td></tr>
+              <tr><td>Catálogo/Precios</td><td>✔</td><td>✔</td><td>(ver)</td><td>–</td><td>(ver)</td></tr>
+              <tr><td>Recetas</td><td>✔</td><td>✔</td><td>–</td><td>✔</td><td>–</td></tr>
+              <tr><td>Inventario (ajustes)</td><td>✔</td><td>✔</td><td>–</td><td>–</td><td>✔</td></tr>
+              <tr><td>Compras/Recepciones</td><td>✔</td><td>✔</td><td>–</td><td>–</td><td>✔</td></tr>
+              <tr><td>Producción</td><td>✔</td><td>✔</td><td>–</td><td>✔</td><td>✔</td></tr>
+              <tr><td>POS/Ventas</td><td>✔</td><td>✔</td><td>✔</td><td>–</td><td>–</td></tr>
+              <tr><td>CPE/GRE</td><td>✔</td><td>✔</td><td>(emitir CPE)</td><td>–</td><td>(emitir GRE)</td></tr>
+              <tr><td>Reportes</td><td>✔</td><td>✔</td><td>(ventas)</td><td>(producción)</td><td>(stock)</td></tr>
+            </tbody>
+          </table>
+              <div class="mermaid" id="m1">
+    erDiagram
+        TENANT ||--o{ TENANT_DOMAIN : has
+        TENANT ||--o{ USER_MEMBERSHIP : includes
+        USER ||--o{ USER_MEMBERSHIP : joins
+
+        TENANT {
+          uuid id PK
+          text name
+          text plan
+          text status
+          timestamptz created_at
+        }
+        TENANT_DOMAIN {
+          uuid id PK
+          uuid tenant_id FK
+          text domain
+          bool is_primary
+        }
+        USER {
+          uuid id PK
+          text email
+          text name
+          text status
+        }
+        USER_MEMBERSHIP {
+          uuid id PK
+          uuid tenant_id FK
+          uuid user_id FK
+          text role
+        }
+
+        CATEGORY ||--o{ PRODUCT : groups
+        TENANT ||--o{ CATEGORY : owns
+        TENANT ||--o{ PRODUCT : owns
+        PRODUCT ||--o{ RECIPE : has
+        RECIPE ||--o{ RECIPE_ITEM : composed_of
+
+        CATEGORY {
+          uuid id PK
+          uuid tenant_id FK
+          text name
+        }
+        PRODUCT {
+          uuid id PK
+          uuid tenant_id FK
+          text sku
+          text name
+          text type
+          text unit
+          text tax_code
+          bool active
+          bool is_batch_tracked
+          int shelf_life_days
+        }
+        RECIPE {
+          uuid id PK
+          uuid tenant_id FK
+          uuid product_id FK
+          numeric yield_qty
+          text yield_unit
+          numeric loss_pct
+        }
+        RECIPE_ITEM {
+          uuid id PK
+          uuid tenant_id FK
+          uuid recipe_id FK
+          uuid ingredient_id FK
+          numeric qty
+          text unit
+          numeric baker_pct
+        }
+
+        TENANT ||--o{ WAREHOUSE : has
+        PRODUCT ||--o{ STOCK_LEVEL : tracked_in
+        PRODUCT ||--o{ STOCK_LOT : batches
+        WAREHOUSE ||--o{ STOCK_LEVEL : holds
+        WAREHOUSE ||--o{ STOCK_MOVEMENT : records
+        STOCK_LOT ||--o{ STOCK_MOVEMENT : referenced_by
+
+        WAREHOUSE {
+          uuid id PK
+          uuid tenant_id FK
+          text name
+          text address
+          text branch_code
+        }
+        STOCK_LEVEL {
+          uuid id PK
+          uuid tenant_id FK
+          uuid product_id FK
+          uuid warehouse_id FK
+          numeric qty_on_hand
+          numeric qty_reserved
+        }
+        STOCK_LOT {
+          uuid id PK
+          uuid tenant_id FK
+          uuid product_id FK
+          text lot_code
+          date exp_date
+          timestamptz created_at
+        }
+        STOCK_MOVEMENT {
+          uuid id PK
+          uuid tenant_id FK
+          timestamptz ts
+          uuid product_id FK
+          uuid warehouse_id FK
+          uuid lot_id
+          numeric qty
+          text uom
+          text type
+          text ref_type
+          uuid ref_id
+          text note
+        }
+
+        SUPPLIER ||--o{ PURCHASE_ORDER : placed
+        PURCHASE_ORDER ||--o{ PURCHASE_ITEM : has
+        PURCHASE_ORDER ||--o{ GOODS_RECEIPT : results_in
+        GOODS_RECEIPT ||--o{ GOODS_RECEIPT_ITEM : contains
+
+        SUPPLIER {
+          uuid id PK
+          uuid tenant_id FK
+          text ruc
+          text name
+          text contact
+          text email
+          text phone
+        }
+        PURCHASE_ORDER {
+          uuid id PK
+          uuid tenant_id FK
+          uuid supplier_id FK
+          text status
+          timestamptz eta
+          numeric total
+          text currency
+        }
+        PURCHASE_ITEM {
+          uuid id PK
+          uuid tenant_id FK
+          uuid purchase_id FK
+          uuid product_id FK
+          numeric qty
+          text unit
+          numeric unit_cost
+          numeric tax_rate
+        }
+        GOODS_RECEIPT {
+          uuid id PK
+          uuid tenant_id FK
+          uuid purchase_id FK
+          timestamptz received_at
+          text doc_ref
+        }
+        GOODS_RECEIPT_ITEM {
+          uuid id PK
+          uuid tenant_id FK
+          uuid receipt_id FK
+          uuid product_id FK
+          uuid lot_id FK
+          uuid warehouse_id FK
+          numeric qty
+          text unit
+          numeric unit_cost
+        }
+
+        POS_REGISTER ||--o{ SALE : processes
+        SALE ||--o{ SALE_ITEM : includes
+        SALE ||--o{ PAYMENT : gets
+        SALE ||--o{ CPE : issues
+        GRE ||--o{ STOCK_MOVEMENT : supports
+
+        POS_REGISTER {
+          uuid id PK
+          uuid tenant_id FK
+          text code
+          uuid warehouse_id FK
+          bool is_open
+          timestamptz opened_at
+          uuid opened_by
+          timestamptz closed_at
+          uuid closed_by
+          numeric opening_cash
+          numeric closing_cash
+        }
+        SALE {
+          uuid id PK
+          uuid tenant_id FK
+          timestamptz ts
+          uuid pos_register_id FK
+          uuid customer_id
+          text status
+          numeric subtotal
+          numeric tax
+          numeric total
+          text currency
+          text payment_status
+          uuid cpe_id
+        }
+        SALE_ITEM {
+          uuid id PK
+          uuid tenant_id FK
+          uuid sale_id FK
+          uuid product_id FK
+          numeric qty
+          text unit
+          numeric unit_price
+          numeric discount_pct
+          numeric tax_rate
+        }
+        PAYMENT {
+          uuid id PK
+          uuid tenant_id FK
+          uuid sale_id FK
+          text method
+          numeric amount
+          text external_txn_id
+          text status
+          jsonb payload_json
+        }
+        CPE {
+          uuid id PK
+          uuid tenant_id FK
+          %% FACTURA|BOLETA|NC|ND
+          text type
+          text series
+          text number
+          timestamptz issue_ts
+          text status
+          %% SEE|NUBEFACT|OTRO
+          text provider
+          text provider_ref
+          text pdf_url
+          text xml_url
+          text cdr_url
+          text sunat_ticket
+          jsonb response_json
+        }
+        GRE {
+          uuid id PK
+          uuid tenant_id FK
+          text series
+          text number
+          timestamptz issue_ts
+          text status
+          jsonb json_payload
+          text sunat_ticket
+        }
+              </div>
+      uuid sale_id FK
+      text method
+      numeric amount
+      text external_txn_id
+      text status
+      jsonb payload_json
+    }
+    CPE {
+      uuid id PK
+      uuid tenant_id FK
+      %% FACTURA|BOLETA|NC|ND
+      text type
+      text series
+      text number
+      timestamptz issue_ts
+      text status
+      %% SEE|NUBEFACT|OTRO
+      text provider
+      text provider_ref
+      text pdf_url
+      text xml_url
+      text cdr_url
+      text sunat_ticket
+      jsonb response_json
+    }
+    GRE {
+      uuid id PK
+      uuid tenant_id FK
+      text series
+      text number
+      timestamptz issue_ts
+      text status
+      jsonb json_payload
+      text sunat_ticket
+    }
+```
+
+---
+
+# 6) Diagramas de arquitectura (Mermaid)
+
+## 6.1 Sistema (contexto, “C4-ish”)
+
+```mermaid
+flowchart LR
+  actor(Cliente)
+  subgraph Browser [Navegador del cliente]
+    UI[Next.js App]
+  end
+
+  subgraph SaaS [SaaS Panaderías]
+    BFF[Gateway / BFF]
+    subgraph SVCs [Microservicios FastAPI]
+      IDT[identity-tenants]
+      CAT[catalog-recipes]
+      INV[inventory-procurement]
+      POS[sales-pos-fiscal]
+    end
+    DB[(PostgreSQL/Supabase)]
+    OBJ[(Storage S3)]
+  end
+
+  subgraph Ext [Servicios externos]
+    PAY[Pasarelas: Izipay/Culqi/Niubiz]
+    CPE["CPE: SEE / PSE (Nubefact)"]
+    SUNAT["SUNAT (validación CPE/GRE)"]
+  end
+
+  Cliente-- Usa -->UI
+  UI-- REST/JWT -->BFF
+  BFF-- REST -->IDT & CAT & INV & POS
+  BFF-- set app.tenant_id -->DB
+  SVCs-- R/W -->DB
+  SVCs-- Presigned URLs -->OBJ
+  POS-- Emite -->CPE-- Intercambia -->SUNAT
+  UI-- SDK -->PAY
+  PAY-- Webhook -->POS
+```
+
+## 6.2 Contenedores (detalle técnico)
+
+```mermaid
+flowchart TD
+  subgraph Frontend [Frontend - Vercel]
+    NJS[Next.js App Router\nNextAuth/Supabase Auth]
+  end
+
+  subgraph Backend [Kubernetes/ECS]
+    GW["Gateway API (FastAPI)\nSubdominio→tenant_id"]
+    IDT[identity-tenants]
+    CAT[catalog-recipes]
+    INV[inventory-procurement]
+    POS[sales-pos-fiscal]
+  end
+
+  DB[(PostgreSQL 16 / Supabase)]
+  S3[(S3-compatible)]
+  PAY[Izipay/Culqi/Niubiz]
+  NUBE["Nubefact (PSE) / SEE"]
+  SUNAT[SUNAT]
+
+  NJS-->GW
+  GW-->IDT
+  GW-->CAT
+  GW-->INV
+  GW-->POS
+  IDT & CAT & INV & POS --> DB
+  CAT & INV & POS --> S3
+  NJS-->PAY
+  PAY--webhook-->POS
+  POS<-->NUBE
+  NUBE<-->SUNAT
+```
+
+---
+
+# 7) Diagramas de **secuencia** (flujos críticos)
+
+## 7.1 Venta POS con pago Yape y CPE
+
+```mermaid
+sequenceDiagram
+  participant U as Cajero (POS)
+  participant UI as Next.js POS
+  participant GW as Gateway API
+  participant POSsvc as sales-pos-fiscal
+  participant INV as inventory
+  participant PAY as Pasarela (Izipay/Culqi/Niubiz)
+  participant CPE as CPE (SEE/Nubefact)
+
+  U->>UI: Selecciona ítems / cobra
+  UI->>GW: POST /sales (JWT c/tenant_id)
+  GW->>POSsvc: Crea venta (PENDING) + reserva stock
+  POSsvc->>INV: POST /stock/reserve (items)
+  INV-->>POSsvc: OK (reservado)
+
+  UI->>PAY: SDK tokeniza/cobra Yape
+  PAY-->>POSsvc: Webhook: pago PAID (firma válida)
+
+  POSsvc->>CPE: POST /cpe (json)
+  CPE-->>POSsvc: PDF/XML/CDR + status
+  POSsvc->>INV: POST /stock/commit (rebaja real)
+  POSsvc-->>GW: Venta CONFIRMED + links CPE
+  GW-->>UI: Ticket + enlace CPE
+```
+
+*(Las pasarelas en Perú exponen SDKs + **webhooks**/notificaciones para confirmar pagos). ([developers.izipay.pe][5], [testdevelopers.izipay.pe][6], [docs.culqi.com][7], [niubiz.com.pe][8])*
+
+## 7.2 Orden de producción
+
+```mermaid
+sequenceDiagram
+  participant B as Maestro Panadero
+  participant UI as App Producción
+  participant GW as Gateway
+  participant CAT as catalog-recipes
+  participant INV as inventory
+  participant PR as production (en INV)
+
+  B->>UI: Define OP (producto terminado, cantidad)
+  UI->>GW: POST /production-orders
+  GW->>CAT: GET receta + insumos escalados
+  GW->>PR: Crear OP (PLANNED)
+  PR->>INV: POST /stock/consume (insumos por lote)
+  INV-->>PR: Movimientos CONSUME
+  PR->>INV: POST /stock/produce (terminados a lote)
+  INV-->>PR: Movimientos PRODUCTION_IN
+  PR-->>GW: OP FINISHED (rendimiento/merma real)
+  GW-->>UI: OP cerrada + stock actualizado
+```
+
+## 7.3 Recepción de compra con lotes
+
+```mermaid
+sequenceDiagram
+  participant S as Storekeeper
+  participant UI as App Compras
+  participant GW as Gateway
+  participant INV as inventory
+
+  S->>UI: Registrar GR (proveedor, productos)
+  UI->>GW: POST /goods-receipts
+  GW->>INV: Crear GR + ítems
+  INV->>INV: Crear lotes (exp_date) + stock_level
+  INV-->>GW: Kardex y saldos actualizados
+  GW-->>UI: GR ok + etiquetas de lote
+```
+
+---
+
+# 8) Diagramas de **estado**
+
+## 8.1 `production_order`
+
+```mermaid
+stateDiagram-v2
+  [*] --> PLANNED
+  PLANNED --> IN_PROGRESS: start()
+  IN_PROGRESS --> PAUSED: pause()
+  PAUSED --> IN_PROGRESS: resume()
+  IN_PROGRESS --> FINISHED: complete(rendimiento, merma)
+  IN_PROGRESS --> CANCELLED: cancel(motivo)
+  PLANNED --> CANCELLED: cancel()
+  FINISHED --> [*]
+  CANCELLED --> [*]
+```
+
+## 8.2 `pos_register` (caja)
+
+```mermaid
+stateDiagram-v2
+  [*] --> CLOSED
+  CLOSED --> OPEN: open(opening_cash, user)
+  OPEN --> OPEN: movements(cash_in/out)
+  OPEN --> CLOSED: close(closing_cash, arqueo)
+  CLOSED --> [*]
+```
+
+---
